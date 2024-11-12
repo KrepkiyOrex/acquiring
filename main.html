@@ -3,20 +3,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <h1>Hey, hey everybody!</h1>
     <p>Supply №832</p>
-    <label>Order ID</label>
-    <label>User ID</label>
-    <label>Amount</label>
-    <label>Currency</label>
-    <label>Status</label>
-    <label>Payment method</label>
+        <form action="/pay" method="POST">
+            <label for="order_id">Order ID</label>
+            <input type="text" id="order_id" name="order_id" required><br>
+
+            <label for="user_id">User ID:</label>
+            <input type="text" id="user_id" name="user_id" required><br>
+
+            <label for="amount">Amount:</label>
+            <input type="text" id="amount" name="amount" required><br>
+
+            <label for="currency">Currency:</label>
+            <input type="text" id="currency" name="currency" maxlength="3" required><br>
+
+            <label for="status">Status:</label>
+            <input type="text" id="status" name="status" required><br>
+
+            <label for="payment_method">Payment method:</label>
+            <input type="text" id="payment_method" name="payment_method" required><br>
+
+
+            <button type="submit">Buy</button>
+        </form>    
 
     <br>
     <br>
-    <button>Buy</button>
 
 </body>
 </html>

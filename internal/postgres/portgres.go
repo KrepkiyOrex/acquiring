@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"fmt"
 
 	_ "github.com/lib/pq"
 	"github.com/pelletier/go-toml" // Пакет для работы с файлами TOML
@@ -48,7 +47,7 @@ func Connect() (*DB, error) {
 		return nil, err
 	}
 
-	fmt.Println("Connecting to the database successfully: ")
+	// fmt.Println("Connecting to the database successfully: ")
 
 	return &DB{DB: db}, nil
 }

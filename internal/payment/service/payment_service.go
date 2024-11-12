@@ -3,12 +3,13 @@ package service
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/KrepkiyOrex/acquiring/internal/postgres"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type DB struct {
@@ -114,19 +115,46 @@ func (t *transactions) parseAmont(r *http.Request) {
 }
 
 func (t *transactions) SetData(r *http.Request) {
-	// CurrencyForm := r.FormValue("currency")
-	// StatusForm := r.FormValue("status")
-	// PaymentMethodForm := r.FormValue("payment_method")
+	CurrencyForm := r.FormValue("currency")
+	StatusForm := r.FormValue("status")
+	PaymentMethodForm := r.FormValue("payment_method")
 
-	t.OrderID = 955
-	t.UserID = 56
-	t.Amount = 56356.54
-	// t.Currency = CurrencyForm
-	// t.Status = StatusForm
-	// t.PaymentMethod = PaymentMethodForm
+	t.parseOrderID(r)
+	t.parseUserID(r)
+	t.parseAmont(r)
+
+	t.Currency = CurrencyForm
+	t.Status = StatusForm
+	t.PaymentMethod = PaymentMethodForm
 }
 
-func TransactionHandler(w http.ResponseWriter, r *http.Request) {
+// func TransactionHandler(w http.ResponseWriter, r *http.Request) {
+// 	transac := &transactions{}
+
+// 	transac.SetData(r)
+
+// 	db, err := postgres.Connect()
+// 	if err != nil {
+// 		log.Fatal("Не удалось подключиться к базе данных:", err)
+// 	}
+// 	defer db.Close()
+
+// 	dbInstance := &DB{db}
+
+// 	err = Add(dbInstance, transac)
+// 	if err != nil {
+// 		log.Fatal("Ошибка при добавлении транзакции:", err)
+// 	}
+
+// 	fmt.Println("Транзакция успешно добавлена!")
+// }
+
+func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		log.Error("Invalid request method: ", http.StatusMethodNotAllowed)
+	}
+
 	transac := &transactions{}
 
 	transac.SetData(r)
@@ -144,13 +172,9 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("Ошибка при добавлении транзакции:", err)
 	}
 
-	fmt.Println("Транзакция успешно добавлена!")
-
-}
-
-func Wel(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hey, hey everybody!")
-	fmt.Fprintln(w, "Peu, peu, peu!")
+	log.Info("Transaction created:", transac)
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintln(w, "Transaction created successfully")
 }
 
 func PaymentPage(w http.ResponseWriter, r *http.Request) {
@@ -167,4 +191,9 @@ func PaymentPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func Wel(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "Hey, hey everybody!")
+	fmt.Fprintln(w, "Peu, peu, peu!")
 }

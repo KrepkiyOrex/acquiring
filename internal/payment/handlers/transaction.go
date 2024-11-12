@@ -23,8 +23,11 @@ func SetupRoutes() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", service.PaymentPage)
-	router.HandleFunc("/pay", service.TransactionHandler)
+	// router.HandleFunc("/pay", service.TransactionHandler)
+	router.HandleFunc("/pay", service.CreateTransactionHandler).Methods("POST")
 	router.HandleFunc("/hey", service.Wel)
+
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
 
 	return router
 }

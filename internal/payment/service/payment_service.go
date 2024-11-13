@@ -12,18 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type DB struct {
-	*postgres.DB
-}
-
-// Интерфейс Crudable
-type Crudable interface {
-	GetTransID() int64
-	CreateTable(table string) string
-	GetInsertQuery() (string, []interface{})
-	GetUpdateQuery() string
-	GetDeleteQuery() string
-}
+var transac = &transactions{}
 
 type transactions struct {
 	TransactionID int64
@@ -35,6 +24,15 @@ type transactions struct {
 	PaymentMethod string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+// Интерфейс Crudable
+type Crudable interface {
+	GetTransID() int64
+	CreateTable(table string) string
+	GetInsertQuery() (string, []interface{})
+	GetUpdateQuery() string
+	GetDeleteQuery() string
 }
 
 func (t *transactions) GetTransID() int64 {
@@ -56,28 +54,13 @@ func (t *transactions) GetDeleteQuery() string {
 	return fmt.Sprintf("DELETE FROM users WHERE id = %d")
 }
 
-func Add[T Crudable](db *DB, entity T) error {
-	query, args := entity.GetInsertQuery()
-	_, err := db.Exec(query, args...)
-	return err
-}
-
-func Update[T Crudable](db *DB, entity T) error {
-	query := entity.GetUpdateQuery()
-	_, err := db.Exec(query)
-	return err
-}
-
-func Delete[T Crudable](db *DB, entity T) error {
-	query := entity.GetDeleteQuery()
-	_, err := db.Exec(query)
-	return err
-}
-
-func Create[T Crudable](db *DB, entity T, table string) error {
-	query := entity.CreateTable(table)
-	_, err := db.Exec(query)
-	return err
+// func (t *transactions) Insert(db *DB) {
+func (t *transactions) Insert() {
+	query, args := t.GetInsertQuery()
+	_, err := postgres.GetDB().Exec(query, args...)
+	if err != nil {
+		log.Fatal("Ошибка при добавлении данных:", err)
+	}
 }
 
 func (t *transactions) CreateTable(table string) string {
@@ -128,49 +111,15 @@ func (t *transactions) SetData(r *http.Request) {
 	t.PaymentMethod = PaymentMethodForm
 }
 
-// func TransactionHandler(w http.ResponseWriter, r *http.Request) {
-// 	transac := &transactions{}
-
-// 	transac.SetData(r)
-
-// 	db, err := postgres.Connect()
-// 	if err != nil {
-// 		log.Fatal("Не удалось подключиться к базе данных:", err)
-// 	}
-// 	defer db.Close()
-
-// 	dbInstance := &DB{db}
-
-// 	err = Add(dbInstance, transac)
-// 	if err != nil {
-// 		log.Fatal("Ошибка при добавлении транзакции:", err)
-// 	}
-
-// 	fmt.Println("Транзакция успешно добавлена!")
-// }
-
 func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		log.Error("Invalid request method: ", http.StatusMethodNotAllowed)
 	}
 
-	transac := &transactions{}
-
 	transac.SetData(r)
 
-	db, err := postgres.Connect()
-	if err != nil {
-		log.Fatal("Не удалось подключиться к базе данных:", err)
-	}
-	defer db.Close()
-
-	dbInstance := &DB{db}
-
-	err = Add(dbInstance, transac)
-	if err != nil {
-		log.Fatal("Ошибка при добавлении транзакции:", err)
-	}
+	transac.Insert()
 
 	log.Info("Transaction created:", transac)
 	w.WriteHeader(http.StatusCreated)
@@ -196,4 +145,27 @@ func PaymentPage(w http.ResponseWriter, r *http.Request) {
 func Wel(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hey, hey everybody!")
 	fmt.Fprintln(w, "Peu, peu, peu!")
+
+	fmt.Fprintln(w, "/start track synthetik legion rising cyberpunk combat 2")
 }
+
+// func TransactionHandler(w http.ResponseWriter, r *http.Request) {
+// 	transac := &transactions{}
+
+// 	transac.SetData(r)
+
+// 	db, err := postgres.Connect()
+// 	if err != nil {
+// 		log.Fatal("Не удалось подключиться к базе данных:", err)
+// 	}
+// 	defer db.Close()
+
+// 	dbInstance := &DB{db}
+
+// 	err = Add(dbInstance, transac)
+// 	if err != nil {
+// 		log.Fatal("Ошибка при добавлении транзакции:", err)
+// 	}
+
+// 	fmt.Println("Транзакция успешно добавлена!")
+// }

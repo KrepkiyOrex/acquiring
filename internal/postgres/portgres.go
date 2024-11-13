@@ -21,8 +21,10 @@ type DB struct {
 	*sql.DB
 }
 
+var db *DB
+
 // postgreSQL DB
-func Connect() (*DB, error) {
+func Connect() error {
 	// load the configuration from the file
 	cfg, err := toml.LoadFile("config/config.toml")
 	if err != nil {
@@ -34,20 +36,23 @@ func Connect() (*DB, error) {
 	driver := dbConfig.Get("driver").(string)
 	dsn := dbConfig.Get("dsn").(string)
 
-	db, err := sql.Open(driver, dsn)
+	sqlDB, err := sql.Open(driver, dsn)
 	if err != nil {
 		log.Error("Error connecting to the database")
-		return nil, err
+		return err
 	}
-	// defer db.Close()
 
-	err = db.Ping()
+	err = sqlDB.Ping()
 	if err != nil {
 		log.Error("Error pinging the database")
-		return nil, err
+		return err
 	}
 
 	// fmt.Println("Connecting to the database successfully: ")
+	db = &DB{DB: sqlDB}
+	return nil
+}
 
-	return &DB{DB: db}, nil
+func GetDB() *DB {
+	return db
 }

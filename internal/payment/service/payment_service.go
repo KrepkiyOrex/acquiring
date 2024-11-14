@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KrepkiyOrex/acquiring/internal/postgres"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,28 +37,12 @@ func (t *transactions) GetTransID() int64 {
 	return t.TransactionID
 }
 
-func (t *transactions) GetInsertQuery() (string, []interface{}) {
-	query := `INSERT INTO transactions
-				(order_id, user_id, amount, currency, status, payment_method)
-				VALUES ($1, $2, $3, $4, $5, $6)`
-	return query, []interface{}{t.OrderID, t.UserID, t.Amount, t.Currency, t.Status, t.PaymentMethod}
-}
-
 func (t *transactions) GetUpdateQuery() string {
 	return fmt.Sprintf("UPDATE users SET name = '%s', email = '%s' WHERE id = %d")
 }
 
 func (t *transactions) GetDeleteQuery() string {
 	return fmt.Sprintf("DELETE FROM users WHERE id = %d")
-}
-
-// func (t *transactions) Insert(db *DB) {
-func (t *transactions) Insert() {
-	query, args := t.GetInsertQuery()
-	_, err := postgres.GetDB().Exec(query, args...)
-	if err != nil {
-		log.Fatal("Ошибка при добавлении данных:", err)
-	}
 }
 
 func (t *transactions) CreateTable(table string) string {
@@ -97,18 +79,33 @@ func (t *transactions) parseAmont(r *http.Request) {
 	}
 }
 
-func (t *transactions) SetData(r *http.Request) {
+func (t *transactions) GetInsertQuery() (string, []interface{}) {
+	query := `INSERT INTO transactions
+				(order_id, user_id, amount, currency, status, payment_method)
+				VALUES ($1, $2, $3, $4, $5, $6)`
+	return query, []interface{}{t.OrderID, t.UserID, t.Amount, t.Currency, t.Status, t.PaymentMethod}
+}
+
+func (pg *DB) Insert() {
+	query, args := transac.GetInsertQuery()
+	_, err := pg.db.Exec(query, args...)
+	if err != nil {
+		log.Fatal("Ошибка при добавлении данных:", err)
+	}
+}
+
+func (db *DB) SetData(r *http.Request) {
 	CurrencyForm := r.FormValue("currency")
 	StatusForm := r.FormValue("status")
 	PaymentMethodForm := r.FormValue("payment_method")
 
-	t.parseOrderID(r)
-	t.parseUserID(r)
-	t.parseAmont(r)
+	transac.parseOrderID(r)
+	transac.parseUserID(r)
+	transac.parseAmont(r)
 
-	t.Currency = CurrencyForm
-	t.Status = StatusForm
-	t.PaymentMethod = PaymentMethodForm
+	transac.Currency = CurrencyForm
+	transac.Status = StatusForm
+	transac.PaymentMethod = PaymentMethodForm
 }
 
 func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
@@ -117,9 +114,9 @@ func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error("Invalid request method: ", http.StatusMethodNotAllowed)
 	}
 
-	transac.SetData(r)
+	GetDB().SetData(r)
 
-	transac.Insert()
+	GetDB().Insert()
 
 	log.Info("Transaction created:", transac)
 	w.WriteHeader(http.StatusCreated)

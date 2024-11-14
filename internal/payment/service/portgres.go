@@ -1,10 +1,10 @@
-package postgres
+package service
 
 import (
 	"database/sql"
 
 	_ "github.com/lib/pq"
-	"github.com/pelletier/go-toml" // Пакет для работы с файлами TOML
+	"github.com/pelletier/go-toml"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,14 +17,28 @@ type Config struct {
 	Database DBConfig `toml:"database"`
 }
 
-type DB struct {
-	*sql.DB
+type Application struct {
+	db dbInstance
 }
 
-var db *DB
+type DB struct {
+	db *sql.DB
+}
+
+type dbInstance interface {
+	Close()
+	Insert()
+}
+
+func (this DB) Close() {
+	err := this.db.Close()
+	if err != nil {
+		log.Fatal("DB close failure: ", err)
+	}
+}
 
 // postgreSQL DB
-func Connect() error {
+func Connect() (*DB, error) {
 	// load the configuration from the file
 	cfg, err := toml.LoadFile("config/config.toml")
 	if err != nil {
@@ -39,20 +53,18 @@ func Connect() error {
 	sqlDB, err := sql.Open(driver, dsn)
 	if err != nil {
 		log.Error("Error connecting to the database")
-		return err
+		return &DB{db: sqlDB}, err
 	}
 
 	err = sqlDB.Ping()
 	if err != nil {
 		log.Error("Error pinging the database")
-		return err
+		return &DB{db: sqlDB}, err
 	}
 
-	// fmt.Println("Connecting to the database successfully: ")
-	db = &DB{DB: sqlDB}
-	return nil
+	return &DB{db: sqlDB}, nil
 }
 
 func GetDB() *DB {
-	return db
+	return &DB{db: &sql.DB{}}
 }

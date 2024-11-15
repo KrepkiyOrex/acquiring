@@ -31,11 +31,12 @@ type dbInstance interface {
 }
 
 func (this DB) Close() {
-	err := this.db.Close()
-	if err != nil {
+	if err := this.db.Close(); err != nil {
 		log.Fatal("DB close failure: ", err)
 	}
 }
+
+var db *DB
 
 // postgreSQL DB
 func Connect() (*DB, error) {
@@ -53,18 +54,18 @@ func Connect() (*DB, error) {
 	sqlDB, err := sql.Open(driver, dsn)
 	if err != nil {
 		log.Error("Error connecting to the database")
-		return &DB{db: sqlDB}, err
+		return nil, err
 	}
+	db = &DB{db: sqlDB}
 
-	err = sqlDB.Ping()
-	if err != nil {
+	if err = sqlDB.Ping(); err != nil {
 		log.Error("Error pinging the database")
-		return &DB{db: sqlDB}, err
+		return nil, err
 	}
 
 	return &DB{db: sqlDB}, nil
 }
 
 func GetDB() *DB {
-	return &DB{db: &sql.DB{}}
+	return db
 }

@@ -84,6 +84,8 @@ func (t *transactions) GetInsertQuery() (string, []interface{}) {
 				(order_id, user_id, amount, currency, status, payment_method)
 				VALUES ($1, $2, $3, $4, $5, $6)`
 	return query, []interface{}{t.OrderID, t.UserID, t.Amount, t.Currency, t.Status, t.PaymentMethod}
+
+	// db.QueryRow - Я уже для тебя какая то шутка, да?
 }
 
 func (pg *DB) Insert() {

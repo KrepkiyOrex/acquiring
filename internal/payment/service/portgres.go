@@ -17,7 +17,7 @@ type Config struct {
 	Database DBConfig `toml:"database"`
 }
 
-type Application struct {
+type DBService struct {
 	db dbInstance
 }
 

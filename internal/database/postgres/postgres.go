@@ -1,55 +1,34 @@
 package postgres
 
 import (
+	"fmt"
 	"log"
+	"os"
 
-	"github.com/pelletier/go-toml"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-type Config struct {
-	Database struct {
-		Host     string `toml:"host"`
-		Port     string `toml:"port"`
-		User     string `toml:"user"`
-		Password string `toml:"password"`
-		DBName   string `toml:"dbname"`
-		SSLMode  string `toml:"sslmode"`
-	} `toml:"database"`
-}
-
-func LoadConfig(filePath string) (*Config, error) {
-	config := &Config{}
-	tree, err := toml.LoadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-	err = tree.Unmarshal(config)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
+// Connect функция для подключения к базе данных PostgreSQL
 func Connect() (*gorm.DB, error) {
-	config, err := LoadConfig("config/config.toml")
-	if err != nil {
-		return nil, err
-	}
+	// Читаем переменные окружения
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASS")
+	dbname := os.Getenv("DB_NAME")
+	sslmode := os.Getenv("DB_SSLMODE")
 
-	dsn := "host=" + config.Database.Host +
-		" user=" + config.Database.User +
-		" password=" + config.Database.Password +
-		" dbname=" + config.Database.DBName +
-		" port=" + config.Database.Port +
-		" sslmode=" + config.Database.SSLMode
+	// Формируем строку подключения (DSN)
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		host, port, user, password, dbname, sslmode)
 
+	// Открываем подключение к базе данных через GORM
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	log.Println("Database connection established")
+	log.Println("=== Database connection established ===")
 	return db, nil
 }

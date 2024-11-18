@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	log.Println("===== Acquiring server started ... =====")
+	log.Println("===== Docker acquiring started ... =====")
 
 	db, err := postgres.Connect()
 	if err != nil {
@@ -21,6 +21,8 @@ func main() {
 	if err := db.AutoMigrate(&service.Transactions{}); err != nil {
 		log.Fatalf("Could not migrate the database: %v", err)
 	}
+
+	db = db.Debug()
 
 	transactionService := service.NewRepository(db) // DB *gorm.DB
 	app := fiber.New()

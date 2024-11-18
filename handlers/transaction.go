@@ -6,9 +6,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, transactionService *service.Repository) {
+func SetupRoutes(app *fiber.App, transService *service.Repository) {
 	api := app.Group("/api")
-	api.Post("/create_transaction", transactionService.CreateTransaction)
-	api.Delete("/delete_transaction/:id", transactionService.DeleteTransaction)
-	api.Get("/get_transaction", transactionService.GetTransactions)
+	api.Get("/pay", service.ShowCreatePage) // payment page
+	api.Post("/create_transaction", transService.CreateTransaction)
+
+	api.Delete("/delete_transaction/:id", transService.DeleteTransaction)
+	api.Get("/get_transactions", transService.GetTransactions)
+	api.Get("/get_transaction/:id", transService.GetTransByID)
 }

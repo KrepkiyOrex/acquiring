@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -10,12 +11,12 @@ import (
 
 type Transactions struct {
 	TransactionID int64     `json:"transaction_id" gorm:"primaryKey"`
-	OrderID       int64     `json:"order_id"`
-	UserID        int64     `json:"user_id"`
+	OrderID       int64     `json:"orderId"`
+	UserID        int64     `json:"userId"`
 	Amount        float64   `json:"amount"`
 	Currency      string    `json:"currency"`
 	Status        string    `json:"status"`
-	PaymentMethod string    `json:"payment_method"`
+	PaymentMethod string    `json:"paymentMethod"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }
@@ -28,29 +29,104 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{DB: db}
 }
 
-func (s *Repository) CreateTransaction(c *fiber.Ctx) error {
+func ShowCreatePage(c *fiber.Ctx) error {
+	return c.Render("internal/source/form.html", fiber.Map{
+		"ErrorMessage": "",
+	})
+}
+
+func (r *Repository) CreateTransaction(ctx *fiber.Ctx) error {
 	transaction := Transactions{}
 
-	if err := c.BodyParser(&transaction); err != nil {
-		c.Status(http.StatusUnprocessableEntity).JSON(
-			&fiber.Map{"message": "request failed"})
-		return err
+	err := ctx.BodyParser(&transaction)
+	if err != nil {
+		return ctx.Render("internal/source/form.html", fiber.Map{
+			"ErrorMessage": "Failed to parse request",
+		})
 	}
 
-	if err := s.DB.Create(&transaction).Error; err != nil {
-		c.Status(http.StatusBadRequest).JSON(
-			&fiber.Map{"message": "could not create transaction"})
-		return err
+	if ok, err := ValidateTrans(transaction); !ok {
+		return ctx.Render("internal/source/form.html", fiber.Map{
+			"ErrorMessage": err.Error(),
+		})
 	}
 
-	c.Status(http.StatusOK).JSON(
-		&fiber.Map{"message": "transaction has been added"})
+	
+
+	if err := r.DB.Create(&transaction).Error; err != nil {
+		return ctx.Render("internal/source/form.html", fiber.Map{
+			"ErrorMessage": "Could not create transaction",
+		})
+	}
+
+	// if r.DB.Update(&transaction).Error; err != nil {
+	// 	return ctx.Render("internal/source/form.html", fiber.Map{
+	// 		"ErrorMessage": "Could not create transaction",
+	// 	})
+	// }
+
+	return ctx.Status(http.StatusOK).JSON(fiber.Map{"message": "Transaction has been added"})
+
+	// err := ctx.BodyParser(&transaction)
+	// if err != nil {
+	// 	ctx.Status(http.StatusUnprocessableEntity).JSON(
+	// 		&fiber.Map{"message": "request failed"})
+	// 	return err
+	// }
+
+	// log.Printf("Parsed transaction: %+v", transaction)
+
+	// if _, err := ValidateTrans(transaction); err != nil {
+	// 	return err
+	// }
+
+	// if err := r.DB.Create(&transaction).Error; err != nil {
+	// 	ctx.Status(http.StatusBadRequest).JSON(
+	// 		&fiber.Map{"message": "could not create transaction"})
+	// 	return err
+	// }
+
+	// ctx.Status(http.StatusOK).JSON(
+	// 	&fiber.Map{"message": "transaction has been added"})
+	// return nil
+}
+
+func ValidateTrans(trans Transactions) (bool, error) {
+	if trans.Amount <= 1000 {
+		return true, nil
+	}
+	return false, fmt.Errorf("not enough money")
+}
+
+func (r *Repository) GetTransByID(context *fiber.Ctx) error {
+
+	id := context.Params("id")
+	transModel := &Transactions{}
+	if id == "" {
+		context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"message": "id cannot be empty",
+		})
+		return nil
+	}
+
+	fmt.Println("the ID is", id)
+
+	err := r.DB.Where("transaction_id = ?", id).First(transModel).Error
+	if err != nil {
+		context.Status(http.StatusBadRequest).JSON(
+			&fiber.Map{"message": "could not get the transactions"})
+		return err
+	}
+	context.Status(http.StatusOK).JSON(&fiber.Map{
+		"message": "transactions id fetched successfully",
+		"data":    transModel,
+	})
 	return nil
 }
 
-func (s *Repository) GetTransactions(c *fiber.Ctx) error {
+func (r *Repository) GetTransactions(c *fiber.Ctx) error {
 	transModels := &[]Transactions{}
-	if err := s.DB.Find(&transModels).Error; err != nil {
+	if err := r.DB.Find(&transModels).Error; err != nil {
 		c.Status(http.StatusBadRequest).JSON(
 			&fiber.Map{"message": "could not get transactions"})
 		return err
@@ -63,7 +139,7 @@ func (s *Repository) GetTransactions(c *fiber.Ctx) error {
 	return nil
 }
 
-func (s *Repository) DeleteTransaction(c *fiber.Ctx) error {
+func (r *Repository) DeleteTransaction(c *fiber.Ctx) error {
 	transModel := Transactions{}
 	txnID := c.Params("id")
 	if txnID == "" {
@@ -72,7 +148,7 @@ func (s *Repository) DeleteTransaction(c *fiber.Ctx) error {
 		return nil
 	}
 
-	if err := s.DB.Delete(&transModel, txnID).Error; err != nil {
+	if err := r.DB.Delete(&transModel, txnID).Error; err != nil {
 		c.Status(http.StatusBadRequest).JSON(
 			&fiber.Map{"message": "could not delete transaction"})
 		return err

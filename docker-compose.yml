@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    container_name: acquiring
+    env_file:
+      - .env
+    networks:
+      - acquiring_app_network
+    ports:
+      - "8080:8080"  # Пробрасываем порт 8080 контейнера на порт 8080 хоста
+    volumes:
+      - ./internal:/app/internal  # Монтируем папку с хоста в контейнер
+
+networks:
+  acquiring_app_network:
+    external: true  # Указываем, что используем внешнюю сеть

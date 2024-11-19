@@ -9,7 +9,19 @@ services:
     ports:
       - "8080:8080"  # Пробрасываем порт 8080 контейнера на порт 8080 хоста
     volumes:
-      - ./internal:/app/internal  # Монтируем папку с хоста в контейнер
+      - ./internal:/app/internal  # Монтируем папку с хоста в контейнер (без него, не видит файл form.html)
+
+  nginx:
+    build:
+      context: .  # Контекст для сборки, это папка, где находятся Dockerfile и nginx.conf
+      dockerfile: DockerfileNginx  # Указываем имя Dockerfile для NGINX
+    container_name: nginx_container
+    ports:
+      - "80:80"  # Пробрасываем порт 80 хоста на порт 80 контейнера
+    depends_on:
+      - app  # Зависимость от приложения
+    networks:
+      - acquiring_app_network
 
 networks:
   acquiring_app_network:

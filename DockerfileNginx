@@ -1,0 +1,4 @@
+FROM nginx:latest
+
+# Копируем конфигурацию NGINX в контейнер
+COPY nginx.conf /etc/nginx/nginx.conf

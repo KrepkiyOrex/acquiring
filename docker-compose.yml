@@ -18,10 +18,13 @@ services:
     container_name: nginx_container
     ports:
       - "80:80"  # Пробрасываем порт 80 хоста на порт 80 контейнера
+      - "443:443"
     depends_on:
       - app  # Зависимость от приложения
     networks:
       - acquiring_app_network
+    volumes:
+      - ./ssl:/etc/nginx/ssl  # Монтируем локальную папку ./ssl в контейнер
 
 networks:
   acquiring_app_network:

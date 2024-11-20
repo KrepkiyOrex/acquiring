@@ -1,26 +1,41 @@
 services:
+  db:
+    image: postgres:latest
+    container_name: postgres_container
+    environment:
+      POSTGRES_PASSWORD: qwerty
+      POSTGRES_DB: acquiring
+    networks:
+      - acquiring_app_network
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
   app:
     build: .
-    container_name: acquiring
+    container_name: acquiring_container
     env_file:
       - .env
     networks:
       - acquiring_app_network
+    depends_on:
+      - db  # Приложение зависит от базы данных, но не ждет готовности
     ports:
-      - "8080:8080"  # Пробрасываем порт 8080 контейнера на порт 8080 хоста
+      - "8080:8080"
     volumes:
-      - ./internal:/app/internal  # Монтируем папку с хоста в контейнер (без него, не видит файл form.html)
+      - ./internal:/internal  # Монтируем папку с хоста в контейнер (без него, не видит файл form.html)
 
   nginx:
     build:
-      context: .  # Контекст для сборки, это папка, где находятся Dockerfile и nginx.conf
-      dockerfile: DockerfileNginx  # Указываем имя Dockerfile для NGINX
+      context: .
+      dockerfile: DockerfileNginx
     container_name: nginx_container
-    ports:
-      - "80:80"  # Пробрасываем порт 80 хоста на порт 80 контейнера
-      - "443:443"
     depends_on:
-      - app  # Зависимость от приложения
+      - app  # Nginx зависит от приложения
+    ports:
+      - "80:80"
+      - "443:443"
     networks:
       - acquiring_app_network
     volumes:
@@ -28,4 +43,7 @@ services:
 
 networks:
   acquiring_app_network:
-    external: true  # Указываем, что используем внешнюю сеть
+    external: true
+
+volumes:
+  db_data:

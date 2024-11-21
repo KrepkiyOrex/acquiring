@@ -35,6 +35,12 @@ func ShowCreatePage(c *fiber.Ctx) error {
 	})
 }
 
+func ShowPaymentPage(c *fiber.Ctx) error {
+	return c.Render("internal/source/payment.html", fiber.Map{
+		"ErrorMessage": "",
+	})
+}
+
 func (r *Repository) CreateTransaction(ctx *fiber.Ctx) error {
 	transaction := Transactions{}
 
@@ -66,29 +72,6 @@ func (r *Repository) CreateTransaction(ctx *fiber.Ctx) error {
 	// }
 
 	return ctx.Status(http.StatusOK).JSON(fiber.Map{"message": "Transaction has been added"})
-
-	// err := ctx.BodyParser(&transaction)
-	// if err != nil {
-	// 	ctx.Status(http.StatusUnprocessableEntity).JSON(
-	// 		&fiber.Map{"message": "request failed"})
-	// 	return err
-	// }
-
-	// log.Printf("Parsed transaction: %+v", transaction)
-
-	// if _, err := ValidateTrans(transaction); err != nil {
-	// 	return err
-	// }
-
-	// if err := r.DB.Create(&transaction).Error; err != nil {
-	// 	ctx.Status(http.StatusBadRequest).JSON(
-	// 		&fiber.Map{"message": "could not create transaction"})
-	// 	return err
-	// }
-
-	// ctx.Status(http.StatusOK).JSON(
-	// 	&fiber.Map{"message": "transaction has been added"})
-	// return nil
 }
 
 func ValidateTrans(trans Transactions) (bool, error) {

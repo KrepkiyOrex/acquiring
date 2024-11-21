@@ -8,7 +8,8 @@ import (
 
 func SetupRoutes(app *fiber.App, transService *service.Repository) {
 	api := app.Group("/api")
-	api.Get("/pay", service.ShowCreatePage) // payment page
+	api.Get("/pay", service.ShowCreatePage) // placebo
+	api.Get("/payment", service.ShowPaymentPage) // payment page
 	api.Post("/create_transaction", transService.CreateTransaction)
 
 	api.Delete("/delete_transaction/:id", transService.DeleteTransaction)

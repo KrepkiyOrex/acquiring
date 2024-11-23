@@ -9,9 +9,11 @@ import (
 func SetupRoutes(app *fiber.App, transService *service.TransRepos, bankService *service.BankRepos) {
 	api := app.Group("/api")
 
-	api.Get("/payment", service.ShowPaymentPage) // payment page
-	api.Post("/update_balance", bankService.UpdateAccountBalance)
 	api.Get("/get_allcard", bankService.GetAllCardDetails)
+	
+	api.Get("/payment", service.ShowPaymentPage) // payment page
+	api.Post("/deduct_balance", bankService.DeductFromAccount)
+	api.Post("/add_funds", bankService.AddFunds)
 
 	api.Get("/pay", service.ShowCreatePage) // placebo
 	api.Post("/create_transaction", transService.CreateTransaction)

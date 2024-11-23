@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	log.Println("===== Docker acquiring started ... =====")
+	log.Println("========== Docker acquiring started ... ===========")
 
 	db1, err := postgres.ConnectTrans()
 	if err != nil {
@@ -23,7 +23,7 @@ func main() {
 		log.Fatalf("Failed to connect to the database bank: %v", err)
 	}
 
-	if err := db1.AutoMigrate(&service.AccountBalance{}); err != nil {
+	if err := db1.AutoMigrate(&service.Transactions{}); err != nil {
 		log.Fatalf("Could not migrate the database: %v", err)
 	}
 

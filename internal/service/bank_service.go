@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type AccountBalance struct {
@@ -16,12 +17,16 @@ type AccountBalance struct {
 	EncryptedCardName   string  `json:"encryptedCardName"`
 }
 
+type BankRepos struct {
+	DB *gorm.DB
+}
+
 func (AccountBalance) TableName() string {
 	return "card_data"
 }
 
-type BankRepos struct {
-	DB *gorm.DB
+func NewBankRepos(db *gorm.DB) *BankRepos {
+	return &BankRepos{DB: db}
 }
 
 func ShowPaymentPage(c *fiber.Ctx) error {
@@ -30,11 +35,17 @@ func ShowPaymentPage(c *fiber.Ctx) error {
 	})
 }
 
-func NewBankRepos(db *gorm.DB) *BankRepos {
-	return &BankRepos{DB: db}
+// вычитаем из баланса
+func (a AccountBalance) DecrementBalance() clause.Expr {
+	return gorm.Expr("balance - ?", a.Balance)
 }
 
-func (bank *BankRepos) UpdateAccountBalance(ctx *fiber.Ctx) error {
+// пополняем баланс
+func (a AccountBalance) IncrementBalance() clause.Expr {
+	return gorm.Expr("balance + ?", a.Balance)
+}
+
+func (bank *BankRepos) DeductFromAccount(ctx *fiber.Ctx) error {
 	details := &AccountBalance{}
 
 	if err := ctx.BodyParser(details); err != nil {
@@ -45,8 +56,8 @@ func (bank *BankRepos) UpdateAccountBalance(ctx *fiber.Ctx) error {
 
 	result := bank.DB.Model(&AccountBalance{}).
 		Where("encrypted_card_number = ?", details.EncryptedCardNumber).
-		Where("balance >= ?", details.Balance).                      // проверка, хватает ли денег
-		Update("balance", gorm.Expr("balance - ?", details.Balance)) // вычитаем из баланса
+		Where("balance >= ?", details.Balance). // проверка, хватает ли денег
+		Update("balance", details.DecrementBalance())
 
 	// если RowsAffected равно 0, это значит, что либо карта не найдена,
 	// либо на счете недостаточно средств.
@@ -56,7 +67,31 @@ func (bank *BankRepos) UpdateAccountBalance(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.Status(http.StatusOK).JSON(fiber.Map{"message": "Balance has been updated"})
+	return ctx.Status(http.StatusOK).JSON(fiber.Map{"message": "Balance has been successfull deducted"})
+}
+
+func (bank *BankRepos) AddFunds(ctx *fiber.Ctx) error {
+	details := &AccountBalance{}
+
+	if err := ctx.BodyParser(details); err != nil {
+		return ctx.Render("internal/source/payment.html", fiber.Map{
+			"ErrorMessage": "Failed to parse request",
+		})
+	}
+
+	result := bank.DB.Model(&AccountBalance{}).
+		Where("encrypted_card_number = ?", details.EncryptedCardNumber).
+		Update("balance", details.IncrementBalance())
+
+	// если RowsAffected равно 0, это значит, что либо карта не найдена,
+	// либо на счете недостаточно средств.
+	if result.RowsAffected == 0 {
+		return ctx.Render("internal/source/payment.html", fiber.Map{
+			"ErrorMessage": "Not enough money or card not found",
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(fiber.Map{"message": "Funds added successfully"})
 }
 
 func (r *BankRepos) GetAllCardDetails(c *fiber.Ctx) error {
@@ -73,23 +108,3 @@ func (r *BankRepos) GetAllCardDetails(c *fiber.Ctx) error {
 	})
 	return nil
 }
-
-// func (br *BankRepos) HasSufficientBalance(details *AccountBalance, context *fiber.Ctx) (bool, error) {
-// 	balanceModel := &AccountBalance{}
-
-// 	err := br.DB.Where("encrypted_card_number = ?", details.EncryptedCardNumber).
-// 		First(balanceModel).Error
-// 	if err != nil {
-// 		context.Status(fiber.StatusBadRequest).JSON(
-// 			&fiber.Map{"message": "could not get the card number"})
-// 		return false, err
-// 	}
-
-// 	price := details.Balance
-
-// 	if price <= balanceModel.Balance {
-// 		details.Balance = balanceModel.Balance - price
-// 		return true, nil
-// 	}
-// 	return false, fmt.Errorf("not enough money")
-// }

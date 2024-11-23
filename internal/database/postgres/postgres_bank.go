@@ -28,7 +28,7 @@ func ConnectBank() (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	log.Println(" ====== Database bank connection established ======")
+	
+	log.Println("======= Database bank connection established ======")
 	return db, nil
 }

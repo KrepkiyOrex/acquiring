@@ -5,6 +5,7 @@ services:
     environment:
       POSTGRES_PASSWORD: qwerty
       POSTGRES_DB: acquiring
+      TZ: Europe/Samara
     networks:
       - acquiring_app_network
     volumes:
@@ -15,6 +16,8 @@ services:
   app:
     build: .
     container_name: acquiring_container
+    environment:
+      TZ: Europe/Samara
     env_file:
       - .env
     networks:
@@ -31,6 +34,8 @@ services:
       context: .
       dockerfile: DockerfileNginx
     container_name: nginx_container
+    environment:
+      TZ: Europe/Samara
     depends_on:
       - app  # Nginx зависит от приложения
     ports:

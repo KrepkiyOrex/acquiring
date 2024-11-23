@@ -13,21 +13,29 @@ import (
 func main() {
 	log.Println("===== Docker acquiring started ... =====")
 
-	db, err := postgres.Connect()
+	db1, err := postgres.ConnectTrans()
 	if err != nil {
-		log.Fatalf("Failed to connect to the database: %v", err)
+		log.Fatalf("Failed to connect to the database acquiring: %v", err)
 	}
 
-	if err := db.AutoMigrate(&service.Transactions{}); err != nil {
+	db2, err := postgres.ConnectBank()
+	if err != nil {
+		log.Fatalf("Failed to connect to the database bank: %v", err)
+	}
+
+	if err := db1.AutoMigrate(&service.AccountBalance{}); err != nil {
 		log.Fatalf("Could not migrate the database: %v", err)
 	}
 
-	db = db.Debug()
+	db1 = db1.Debug()
 
-	transactionService := service.NewRepository(db) // DB *gorm.DB
 	app := fiber.New()
 
-	handlers.SetupRoutes(app, transactionService)
+	transactionService := service.NewAcquiringRepos(db1) // DB *gorm.DB
+
+	bankService := service.NewBankRepos(db2) // DB *gorm.DB
+
+	handlers.SetupRoutes(app, transactionService, bankService)
 
 	if err := app.Listen(":8080"); err != nil {
 		log.Fatalf("Error starting server: %v", err)

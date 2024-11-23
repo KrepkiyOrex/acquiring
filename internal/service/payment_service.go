@@ -21,12 +21,8 @@ type Transactions struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-type Repository struct {
+type TransRepos struct {
 	DB *gorm.DB
-}
-
-func NewRepository(db *gorm.DB) *Repository {
-	return &Repository{DB: db}
 }
 
 func ShowCreatePage(c *fiber.Ctx) error {
@@ -35,13 +31,11 @@ func ShowCreatePage(c *fiber.Ctx) error {
 	})
 }
 
-func ShowPaymentPage(c *fiber.Ctx) error {
-	return c.Render("internal/source/payment.html", fiber.Map{
-		"ErrorMessage": "",
-	})
+func NewAcquiringRepos(db *gorm.DB) *TransRepos {
+	return &TransRepos{DB: db}
 }
 
-func (r *Repository) CreateTransaction(ctx *fiber.Ctx) error {
+func (r *TransRepos) CreateTransaction(ctx *fiber.Ctx) error {
 	transaction := Transactions{}
 
 	err := ctx.BodyParser(&transaction)
@@ -51,13 +45,11 @@ func (r *Repository) CreateTransaction(ctx *fiber.Ctx) error {
 		})
 	}
 
-	if ok, err := ValidateTrans(transaction); !ok {
-		return ctx.Render("internal/source/form.html", fiber.Map{
-			"ErrorMessage": err.Error(),
-		})
-	}
-
-	
+	// if ok, err := ValidateTrans(transaction); !ok {
+	// 	return ctx.Render("internal/source/form.html", fiber.Map{
+	// 		"ErrorMessage": err.Error(),
+	// 	})
+	// }
 
 	if err := r.DB.Create(&transaction).Error; err != nil {
 		return ctx.Render("internal/source/form.html", fiber.Map{
@@ -65,23 +57,10 @@ func (r *Repository) CreateTransaction(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// if r.DB.Update(&transaction).Error; err != nil {
-	// 	return ctx.Render("internal/source/form.html", fiber.Map{
-	// 		"ErrorMessage": "Could not create transaction",
-	// 	})
-	// }
-
 	return ctx.Status(http.StatusOK).JSON(fiber.Map{"message": "Transaction has been added"})
 }
 
-func ValidateTrans(trans Transactions) (bool, error) {
-	if trans.Amount <= 1000 {
-		return true, nil
-	}
-	return false, fmt.Errorf("not enough money")
-}
-
-func (r *Repository) GetTransByID(context *fiber.Ctx) error {
+func (r *TransRepos) GetTransByID(context *fiber.Ctx) error {
 
 	id := context.Params("id")
 	transModel := &Transactions{}
@@ -107,7 +86,7 @@ func (r *Repository) GetTransByID(context *fiber.Ctx) error {
 	return nil
 }
 
-func (r *Repository) GetTransactions(c *fiber.Ctx) error {
+func (r *TransRepos) GetTransactions(c *fiber.Ctx) error {
 	transModels := &[]Transactions{}
 	if err := r.DB.Find(&transModels).Error; err != nil {
 		c.Status(http.StatusBadRequest).JSON(
@@ -122,7 +101,7 @@ func (r *Repository) GetTransactions(c *fiber.Ctx) error {
 	return nil
 }
 
-func (r *Repository) DeleteTransaction(c *fiber.Ctx) error {
+func (r *TransRepos) DeleteTransaction(c *fiber.Ctx) error {
 	transModel := Transactions{}
 	txnID := c.Params("id")
 	if txnID == "" {

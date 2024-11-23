@@ -9,9 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// Connect функция для подключения к базе данных PostgreSQL
-func Connect() (*gorm.DB, error) {
-	// Читаем переменные окружения
+// ConnectTrans функция для подключения к базе данных PostgreSQL
+func ConnectTrans() (*gorm.DB, error) {
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("DB_USER")
@@ -19,16 +18,14 @@ func Connect() (*gorm.DB, error) {
 	dbname := os.Getenv("DB_NAME")
 	sslmode := os.Getenv("DB_SSLMODE")
 
-	// Формируем строку подключения (DSN)
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		host, port, user, password, dbname, sslmode)
 
-	// Открываем подключение к базе данных через GORM
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	log.Println("=== Database connection established ===")
+	log.Println("=== Database transaction connection established ===")
 	return db, nil
 }

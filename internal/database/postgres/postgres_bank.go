@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-// ConnectTrans функция для подключения к базе данных PostgreSQL
+// ConnectBank функция для подключения к базе данных PostgreSQL
 func ConnectBank() (*gorm.DB, error) {
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
@@ -22,13 +23,30 @@ func ConnectBank() (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		host, port, user, password, dbname, sslmode)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+	db, err := connectingWithRetry(dsn, 5, 2*time.Second)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	log.Println("======= Database bank connection established ======")
 	return db, nil
+}
+
+func connectingWithRetry(dsn string, maxRetries int, retryInterval time.Duration) (*gorm.DB, error) {
+	var db *gorm.DB
+	var err error
+
+	for i := 1; i < maxRetries; i++ {
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Info),
+		})
+
+		if err == nil {
+			return db, nil
+		}
+
+		log.Printf("Failed to connect to database (attempt %d/%d): %v\n", i, retryInterval, err)
+		time.Sleep(retryInterval)
+	}
+	return nil, err
 }

@@ -6,14 +6,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, transService *service.TransRepos, bankService *service.BankRepos) {
+func SetupRoutes(app *fiber.App, transService *service.TransRepos, svc *service.Service) {
+// func SetupRoutes(app *fiber.App, transService *service.TransRepos, bankService *service.BankRepos) {
 	api := app.Group("/api")
 
-	api.Get("/get_allcard", bankService.GetAllCardDetails)
+	api.Get("/get_allcard", svc.GetAllCardDetails)
 	
 	api.Get("/payment", service.ShowPaymentPage) // payment page
-	api.Post("/deduct_balance", bankService.DeductFromAccount)
-	api.Post("/add_funds", bankService.AddFunds)
+	api.Post("/deduct_balance", svc.DeductFromAccount)
+	api.Post("/add_funds", svc.AddFunds)
 
 	// api.Get("/pay", service.ShowCreatePage) // placebo
 	api.Post("/create_transaction", transService.CreateTransaction)

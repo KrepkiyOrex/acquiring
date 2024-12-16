@@ -3,7 +3,6 @@ package service
 import (
 	"net/http"
 
-	"github.com/KrepkiyOrex/acquiring/internal/producer"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -22,8 +21,14 @@ type BankRepos struct {
 	DB *gorm.DB
 }
 
-// func (AccountBalance) TableName() string {
-// 	return "card_data"
+type BankRepository interface {
+	DeductFromAccount(ctx *fiber.Ctx) error
+	AddFunds(ctx *fiber.Ctx) error
+	GetAllCardDetails(ctx *fiber.Ctx) error
+}
+
+// type Application struct {
+// 	db dbContract
 // }
 
 func NewBankRepos(db *gorm.DB) *BankRepos {
@@ -62,17 +67,6 @@ func (bank *BankRepos) DeductFromAccount(ctx *fiber.Ctx) error {
 		Where("balance >= ?", details.Balance). // проверка, хватает ли денег
 		Update("balance", details.DecrementBalance())
 
-	transaction := Transactions{
-		TransactionID: 123456,
-		OrderID:       78910,  // получаем с магазина (другого приложения)
-		UserID:        101112, // получаем с магазина (другого приложения)
-		Amount:        1000.50,
-	}
-
-	transaction.SetBalance(details.Balance)
-
-	producer.Producer()
-
 	// создай метод, внутри которого будут методы, что установят все эти
 	// значения с других методово или программ
 
@@ -83,6 +77,17 @@ func (bank *BankRepos) DeductFromAccount(ctx *fiber.Ctx) error {
 			"ErrorMessage": "Not enough money or card not found",
 		})
 	}
+
+	transaction := Transactions{
+		TransactionID: 123456,
+		OrderID:       78910,  // получаем с магазина (другого приложения)
+		UserID:        101112, // получаем с магазина (другого приложения)
+		Amount:        1000.50,
+	}
+
+	transaction.SetBalance(details.Balance)
+
+	// producer.Producer()
 
 	return ctx.Status(http.StatusOK).JSON(fiber.Map{"message": "Balance has been successfull deducted"})
 }
@@ -129,4 +134,24 @@ func (bank *BankRepos) GetAllCardDetails(ctx *fiber.Ctx) error {
 		"data":    balanceModels,
 	})
 	return nil
+}
+
+type Service struct {
+	BankRepo BankRepository
+}
+
+func NewService(repo BankRepository) *Service {
+	return &Service{BankRepo: repo}
+}
+
+func (s *Service) AddFunds(ctx *fiber.Ctx) error {
+	return s.BankRepo.AddFunds(ctx)
+}
+
+func (s *Service) DeductFromAccount(ctx *fiber.Ctx) error {
+	return s.BankRepo.DeductFromAccount(ctx)
+}
+
+func (s *Service) GetAllCardDetails(ctx *fiber.Ctx) error {
+	return s.BankRepo.GetAllCardDetails(ctx)
 }

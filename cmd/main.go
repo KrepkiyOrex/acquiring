@@ -37,6 +37,8 @@ func main() {
 
 	handlers.SetupRoutes(app, transactionService, bankService)
 
+	// producer.Producer()
+
 	if err := app.Listen(":8080"); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}

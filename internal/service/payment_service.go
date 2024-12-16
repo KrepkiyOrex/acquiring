@@ -25,11 +25,11 @@ type TransRepos struct {
 	DB *gorm.DB
 }
 
-func ShowCreatePage(c *fiber.Ctx) error {
-	return c.Render("internal/source/form.html", fiber.Map{
-		"ErrorMessage": "",
-	})
-}
+// func ShowCreatePage(c *fiber.Ctx) error {
+// 	return c.Render("internal/source/form.html", fiber.Map{
+// 		"ErrorMessage": "",
+// 	})
+// }
 
 func NewAcquiringRepos(db *gorm.DB) *TransRepos {
 	return &TransRepos{DB: db}

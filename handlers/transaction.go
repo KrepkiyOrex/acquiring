@@ -15,7 +15,7 @@ func SetupRoutes(app *fiber.App, transService *service.TransRepos, bankService *
 	api.Post("/deduct_balance", bankService.DeductFromAccount)
 	api.Post("/add_funds", bankService.AddFunds)
 
-	api.Get("/pay", service.ShowCreatePage) // placebo
+	// api.Get("/pay", service.ShowCreatePage) // placebo
 	api.Post("/create_transaction", transService.CreateTransaction)
 	api.Delete("/delete_transaction/:id", transService.DeleteTransaction)
 	api.Get("/get_transactions", transService.GetTransactions)

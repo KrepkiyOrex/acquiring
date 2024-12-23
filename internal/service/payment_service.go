@@ -25,18 +25,27 @@ type TransRepos struct {
 	DB *gorm.DB
 }
 
+type TransactionRepository interface {
+	CreateTransaction(ctx *fiber.Ctx) error
+	GetTransByID(context *fiber.Ctx) error
+	GetTransactions(c *fiber.Ctx) error
+	DeleteTransaction(c *fiber.Ctx) error
+}
+
 func NewTransRepos(db *gorm.DB) *TransRepos {
 	return &TransRepos{DB: db}
 }
 
-func (r *TransRepos) CreateTransaction(ctx *fiber.Ctx, transaction *Transactions) error {
+// func (r *TransRepos) CreateTransaction(ctx *fiber.Ctx, transaction *Transactions) error {
+func (r *TransRepos) CreateTransaction(ctx *fiber.Ctx) error {
 	// transaction := &Transactions{}
 
-	// if err := ctx.BodyParser(transaction); err != nil {
-	// 	return ctx.Render("internal/source/payment.html", fiber.Map{
-	// 		"ErrorMessage": "Failed to parse request",
-	// 	})
-	// }
+	details := ctx.Locals("cardDetails").(*CardData)
+
+	transaction := NewTransaction()
+
+	transaction.SetAmount(*details)
+
 	fmt.Println("Create: ", transaction)
 
 	if err := r.DB.Create(&transaction).Error; err != nil {
@@ -106,4 +115,20 @@ func (r *TransRepos) DeleteTransaction(c *fiber.Ctx) error {
 	c.Status(http.StatusOK).JSON(
 		&fiber.Map{"message": "transaction deleted successfully"})
 	return nil
+}
+
+func (s *Service) CreateTransaction(ctx *fiber.Ctx) error {
+	return s.TransactionRepo.CreateTransaction(ctx)
+}
+
+func (s *Service) DeleteTransaction(ctx *fiber.Ctx, transaction *Transactions) error {
+	return s.TransactionRepo.DeleteTransaction(ctx)
+}
+
+func (s *Service) GetTransactions(ctx *fiber.Ctx, transaction *Transactions) error {
+	return s.TransactionRepo.GetTransactions(ctx)
+}
+
+func (s *Service) GetTransByID(ctx *fiber.Ctx, transaction *Transactions) error {
+	return s.TransactionRepo.GetTransByID(ctx)
 }

@@ -23,14 +23,10 @@ type BankRepos struct {
 }
 
 type BankRepository interface {
-	DeductFromAccount(ctx *fiber.Ctx, details *CardData) error
+	DeductFromAccount(ctx *fiber.Ctx) error
 	AddFunds(ctx *fiber.Ctx) error
 	GetAllCardDetails(ctx *fiber.Ctx) error
 }
-
-// type Application struct {
-// 	db dbContract
-// }
 
 func NewBankRepos(db *gorm.DB) *BankRepos {
 	return &BankRepos{DB: db}
@@ -52,14 +48,12 @@ func (card CardData) IncrementBalance() clause.Expr {
 	return gorm.Expr("balance + ?", card.Balance)
 }
 
-func (bank *BankRepos) DeductFromAccount(ctx *fiber.Ctx, details *CardData) error {
+// func (bank *BankRepos) DeductFromAccount(ctx *fiber.Ctx, details *CardData) error {
+func (bank *BankRepos) DeductFromAccount(ctx *fiber.Ctx) error {
 	// details := &CardData{}
 
-	// if err := ctx.BodyParser(details); err != nil {
-	// 	return ctx.Render("internal/source/payment.html", fiber.Map{
-	// 		"ErrorMessage": "Failed to parse request",
-	// 	})
-	// }
+	details := ctx.Locals("cardDetails").(*CardData)
+
 	fmt.Println("Deduct: ", details)
 
 	result := bank.DB.Model(&CardData{}).
@@ -113,7 +107,8 @@ func NewTransaction() *Transactions {
 	return &Transactions{}
 }
 
-func ProcessPayment(bankRepo BankRepository, transRepo *TransRepos, ctx *fiber.Ctx) error {
+// func ProcessPayment(bankRepo BankRepository, transRepo *TransRepos, ctx *fiber.Ctx) error {
+func ProcessPayment(svc *Service, ctx *fiber.Ctx) error {
 	details := &CardData{}
 
 	if err := ctx.BodyParser(details); err != nil {
@@ -122,15 +117,19 @@ func ProcessPayment(bankRepo BankRepository, transRepo *TransRepos, ctx *fiber.C
 		})
 	}
 
-	if err := bankRepo.DeductFromAccount(ctx, details); err != nil {
+	ctx.Locals("cardDetails", details)
+
+	// if err := bankRepo.DeductFromAccount(ctx, details); err != nil {
+	if err := svc.BankRepo.DeductFromAccount(ctx); err != nil {
 		return err
 	}
 
-	transaction := NewTransaction()
+	// transaction := NewTransaction()
 
-	transaction.SetAmount(*details)
+	// transaction.SetAmount(*details)
 
-	if err := transRepo.CreateTransaction(ctx, transaction); err != nil {
+	// if err := transRepo.CreateTransaction(ctx, transaction); err != nil {
+	if err := svc.TransactionRepo.CreateTransaction(ctx); err != nil {
 		return err
 	}
 
@@ -155,19 +154,23 @@ func (bank *BankRepos) GetAllCardDetails(ctx *fiber.Ctx) error {
 }
 
 type Service struct {
-	BankRepo BankRepository
+	BankRepo        BankRepository
+	TransactionRepo TransactionRepository
 }
 
-func NewService(repo BankRepository) *Service {
-	return &Service{BankRepo: repo}
+func NewService(bankRepo BankRepository, transactionRepo TransactionRepository) *Service {
+	return &Service{
+		BankRepo:        bankRepo,
+		TransactionRepo: transactionRepo,
+	}
 }
 
 func (s *Service) AddFunds(ctx *fiber.Ctx) error {
 	return s.BankRepo.AddFunds(ctx)
 }
 
-func (s *Service) DeductFromAccount(ctx *fiber.Ctx, details *CardData) error {
-	return s.BankRepo.DeductFromAccount(ctx, details)
+func (s *Service) DeductFromAccount(ctx *fiber.Ctx) error {
+	return s.BankRepo.DeductFromAccount(ctx)
 }
 
 func (s *Service) GetAllCardDetails(ctx *fiber.Ctx) error {

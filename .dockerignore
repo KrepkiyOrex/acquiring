@@ -2,6 +2,7 @@ config/
 ssl/
 old/
 
+.gitignore
 *.txt
 *.ods
 .git/

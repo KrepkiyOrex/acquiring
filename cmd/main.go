@@ -29,9 +29,9 @@ func main() {
 	transactionService := service.NewTransRepos(db1.DB) // DB *gorm.DB
 
 	bankRepos := service.NewBankRepos(db2.DB) // DB *gorm.DB
-	bankService := service.NewService(bankRepos)
+	service := service.NewService(bankRepos, transactionService)
 
-	handlers.SetupRoutes(app, transactionService, bankService)
+	handlers.SetupRoutes(app, service)
 
 	// producer.Producer()
 

@@ -2,11 +2,8 @@ config/
 ssl/
 old/
 
-
-Readme.txt
-CRUD.txt
-example.txt
-RoadMap.txt
-all table.ods
-.git
+*.txt
+*.ods
+.git/
 .env
+.air.toml

@@ -8,17 +8,11 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# 4. Копируем весь проект в контейнер
+# 4. Устанавливаем air для автоматической перезагрузки
+RUN go install github.com/air-verse/air@latest
+
+# 5. Копируем весь проект в контейнер
 COPY . ./
 
-# 6. Сборка приложения
-RUN go build -o app ./cmd
-
-# 7. Создаем минимальный образ для запуска
-FROM debian:bookworm-slim AS base
-
-# 8. Копируем бинарник в финальный образ
-COPY --from=builder /app/app /app
-
-# 9. Указываем команду запуска
-CMD ["./app"]
+# 6. Указываем команду для запуска приложения с air
+CMD ["air"]

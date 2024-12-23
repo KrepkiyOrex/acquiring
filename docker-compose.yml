@@ -1,18 +1,4 @@
 services:
-  db:
-    image: postgres:latest
-    container_name: postgres_container
-    environment:
-      POSTGRES_PASSWORD: qwerty
-      POSTGRES_DB: acquiring
-      TZ: Europe/Samara
-    networks:
-      - acquiring_app_network
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
-
   kafka:
     image: confluentinc/cp-kafka:7.7.0
     container_name: kafka_container
@@ -41,6 +27,29 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
+  consumer-app:
+    build:
+      context: ../consumer-app
+    container_name: consumer_container
+    networks:
+      - acquiring_app_network
+    depends_on:
+      - kafka
+
+  db:
+    image: postgres:latest
+    container_name: postgres_container
+    environment:
+      POSTGRES_PASSWORD: qwerty
+      POSTGRES_DB: acquiring
+      TZ: Europe/Samara
+    networks:
+      - acquiring_app_network
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
   app:
     build: .
     container_name: acquiring_container
@@ -57,7 +66,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./internal:/internal  # Монтируем папку с хоста в контейнер (без него, не видит файл form.html)
+      - .:/app # для air
+      # - ./internal:/internal  # Монтируем папку с хоста в контейнер (без него, не видит файл payment.html)
 
   nginx:
     build:
@@ -74,21 +84,8 @@ services:
     networks:
       - acquiring_app_network
     volumes:
-      - ./ssl:/etc/nginx/ssl  # Монтируем локальную папку ./ssl в контейнер
+      - ./ssl:/etc/nginx/ssl
       - ./internal/source:/usr/share/nginx/html/source
-
-  consumer-app:
-    build:
-      context: ../consumer-app
-    container_name: consumer_container
-    # environment:
-      # - DATABASE_URL=postgres://user:password@postgres:5432/transactions_db
-      # - KAFKA_BROKER=kafka:9093
-    networks:
-      - acquiring_app_network
-    depends_on:
-      - kafka
-      # - postgres
 
 networks:
   acquiring_app_network:

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,7 +23,7 @@ type BankRepos struct {
 }
 
 type BankRepository interface {
-	DeductFromAccount(ctx *fiber.Ctx) error
+	DeductFromAccount(ctx *fiber.Ctx, details *CardData) error
 	AddFunds(ctx *fiber.Ctx) error
 	GetAllCardDetails(ctx *fiber.Ctx) error
 }
@@ -35,8 +36,8 @@ func NewBankRepos(db *gorm.DB) *BankRepos {
 	return &BankRepos{DB: db}
 }
 
-func ShowPaymentPage(c *fiber.Ctx) error {
-	return c.Render("internal/source/payment.html", fiber.Map{
+func ShowPaymentPage(ctx *fiber.Ctx) error {
+	return ctx.Render("internal/source/payment.html", fiber.Map{
 		"ErrorMessage": "",
 	})
 }
@@ -51,14 +52,15 @@ func (card CardData) IncrementBalance() clause.Expr {
 	return gorm.Expr("balance + ?", card.Balance)
 }
 
-func (bank *BankRepos) DeductFromAccount(ctx *fiber.Ctx) error {
-	details := &CardData{}
+func (bank *BankRepos) DeductFromAccount(ctx *fiber.Ctx, details *CardData) error {
+	// details := &CardData{}
 
-	if err := ctx.BodyParser(details); err != nil {
-		return ctx.Render("internal/source/payment.html", fiber.Map{
-			"ErrorMessage": "Failed to parse request",
-		})
-	}
+	// if err := ctx.BodyParser(details); err != nil {
+	// 	return ctx.Render("internal/source/payment.html", fiber.Map{
+	// 		"ErrorMessage": "Failed to parse request",
+	// 	})
+	// }
+	fmt.Println("Deduct: ", details)
 
 	result := bank.DB.Model(&CardData{}).
 		Where("encrypted_card_number = ?", details.EncryptedCardNumber).
@@ -66,9 +68,6 @@ func (bank *BankRepos) DeductFromAccount(ctx *fiber.Ctx) error {
 		Where("encrypted_CVV = ?", details.EncryptedCvv).
 		Where("balance >= ?", details.Balance). // проверка, хватает ли денег
 		Update("balance", details.DecrementBalance())
-
-	// создай метод, внутри которого будут методы, что установят все эти
-	// значения с других методово или программ
 
 	// если RowsAffected равно 0, это значит, что либо карта не найдена,
 	// либо на счете недостаточно средств.
@@ -78,23 +77,9 @@ func (bank *BankRepos) DeductFromAccount(ctx *fiber.Ctx) error {
 		})
 	}
 
-	transaction := Transactions{
-		TransactionID: 123456,
-		OrderID:       78910,  // получаем с магазина (другого приложения)
-		UserID:        101112, // получаем с магазина (другого приложения)
-		Amount:        1000.50,
-	}
-
-	transaction.SetBalance(details.Balance)
-
 	// producer.Producer()
 
 	return ctx.Status(http.StatusOK).JSON(fiber.Map{"message": "Balance has been successfull deducted"})
-}
-
-func (tsn *Transactions) SetBalance(balance float64) *Transactions {
-	tsn.Amount = balance
-	return tsn
 }
 
 func (bank *BankRepos) AddFunds(ctx *fiber.Ctx) error {
@@ -114,11 +99,44 @@ func (bank *BankRepos) AddFunds(ctx *fiber.Ctx) error {
 	// либо на счете недостаточно средств.
 	if result.RowsAffected == 0 {
 		return ctx.Render("internal/source/payment.html", fiber.Map{
-			"ErrorMessage": "Not enough money or card not found",
-		})
+			"ErrorMessage": "Not enough money or card not found"})
 	}
 
 	return ctx.Status(http.StatusOK).JSON(fiber.Map{"message": "Funds added successfully"})
+}
+
+func (tr *Transactions) SetAmount(details CardData) {
+	tr.Amount = details.Balance
+}
+
+func NewTransaction() *Transactions {
+	return &Transactions{}
+}
+
+func ProcessPayment(bankRepo BankRepository, transRepo *TransRepos, ctx *fiber.Ctx) error {
+	details := &CardData{}
+
+	if err := ctx.BodyParser(details); err != nil {
+		return ctx.Render("internal/source/payment.html", fiber.Map{
+			"ErrorMessage": "Failed to parse request",
+		})
+	}
+
+	if err := bankRepo.DeductFromAccount(ctx, details); err != nil {
+		return err
+	}
+
+	transaction := NewTransaction()
+
+	transaction.SetAmount(*details)
+
+	if err := transRepo.CreateTransaction(ctx, transaction); err != nil {
+		return err
+	}
+
+	return ctx.Status(http.StatusOK).JSON(fiber.Map{
+		"message": "Payment processed successfully",
+	})
 }
 
 func (bank *BankRepos) GetAllCardDetails(ctx *fiber.Ctx) error {
@@ -148,8 +166,8 @@ func (s *Service) AddFunds(ctx *fiber.Ctx) error {
 	return s.BankRepo.AddFunds(ctx)
 }
 
-func (s *Service) DeductFromAccount(ctx *fiber.Ctx) error {
-	return s.BankRepo.DeductFromAccount(ctx)
+func (s *Service) DeductFromAccount(ctx *fiber.Ctx, details *CardData) error {
+	return s.BankRepo.DeductFromAccount(ctx, details)
 }
 
 func (s *Service) GetAllCardDetails(ctx *fiber.Ctx) error {
